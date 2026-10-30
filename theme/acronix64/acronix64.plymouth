@@ -1,0 +1,11 @@
+[Plymouth Theme]
+Name=Acronix 64
+Description=Nintendo 64 / Smash 64 style boot: UNI logo slam, versus wipe, AcronixOS title
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/acronix64
+ScriptFile=/usr/share/plymouth/themes/acronix64/acronix64.script
+ConsoleLogBackgroundColor=0x0b1448
+MonospaceFont=Cantarell 11
+Font=Cantarell 12
