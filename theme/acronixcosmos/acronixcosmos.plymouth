@@ -1,0 +1,11 @@
+[Plymouth Theme]
+Name=Acronix Cosmos
+Description=Cosmic pixel-art boot: UNI logo assembles under a crescent moon, AcronixOS star title
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/acronixcosmos
+ScriptFile=/usr/share/plymouth/themes/acronixcosmos/acronixcosmos.script
+ConsoleLogBackgroundColor=0x05031a
+MonospaceFont=Cantarell 11
+Font=Cantarell 12

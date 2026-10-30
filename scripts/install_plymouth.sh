@@ -2,7 +2,8 @@
 # Installs one of the Acronix Plymouth themes system-wide and rebuilds the initramfs.
 # Run it yourself when you're happy with the preview:
 #
-#   sudo scripts/install_plymouth.sh acronix64     # Nintendo 64 / Smash 64 style (new)
+#   sudo scripts/install_plymouth.sh acronixcosmos # cosmic pixel art (current)
+#   sudo scripts/install_plymouth.sh acronix64     # Nintendo 64 / Smash 64 style
 #   sudo scripts/install_plymouth.sh acronix       # the first, modern-looking version
 #
 # Installing only COPIES the theme next to the others and selects it; the previous
@@ -13,8 +14,8 @@ set -euo pipefail
 
 THEME="${1:-}"
 case "$THEME" in
-    acronix|acronix64) ;;
-    *) echo "Usage: sudo $0 acronix64|acronix" >&2; exit 1 ;;
+    acronix|acronix64|acronixcosmos) ;;
+    *) echo "Usage: sudo $0 acronixcosmos|acronix64|acronix" >&2; exit 1 ;;
 esac
 
 if [[ $EUID -ne 0 ]]; then
@@ -29,6 +30,7 @@ PREVIOUS="$(plymouth-set-default-theme)"
 BUILDER="${SUDO_USER:-root}"
 case "$THEME" in
     acronix)   su "$BUILDER" -c "'$ROOT/scripts/make_assets.sh'"   > /dev/null ;;
+    acronixcosmos) su "$BUILDER" -c "'$ROOT/scripts/make_assets_cosmos.py'" > /dev/null ;;
     acronix64) su "$BUILDER" -c "'$ROOT/scripts/make_assets64.sh'" > /dev/null ;;
 esac
 

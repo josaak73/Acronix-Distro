@@ -7,7 +7,6 @@
 # theme. Everything disappears when the script exits; the host is untouched.
 #
 # Usage: [THEME=acronix64] scripts/preview_plymouth.sh [seconds]   (defaults: acronix, 8)
-# PREVIEW_PROMPT=1 also shows a status message and a password prompt at the end.
 # The theme is the folder name under theme/. Set DEBUG_LOG=/path to keep the full plymouthd log.
 set -euo pipefail
 
@@ -38,18 +37,10 @@ inner() {
         plymouth system-update --progress=$((i * 100 / SECONDS_TO_RUN)) || true
         sleep 1
     done
-    # PREVIEW_PROMPT=1 also shows a status message and a password prompt near the end
-    if [[ "${PREVIEW_PROMPT:-0}" == 1 ]]; then
-        plymouth display-message --text "Comprobando el sistema de archivos..." || true
-        ( timeout 6 plymouth ask-for-password --prompt "Introduce la contraseña del disco" >/dev/null 2>&1 & )
-        sleep 3
-        plymouth update --status=x >/dev/null 2>&1 || true
-        sleep 2
-    fi
     plymouth quit || true
     wait || true
 }
-export SCRATCH SECONDS_TO_RUN THEME PREVIEW_PROMPT
+export SCRATCH SECONDS_TO_RUN THEME
 export -f inner
 unshare --user --map-root-user --mount bash -c inner || true
 

@@ -4,12 +4,83 @@ Customizations for the Acronix Linux distro (UNI).
 
 ## Plymouth boot animation
 
-There are two themes. They share the logo pieces; nothing in one depends on the other.
+There are three themes. They share the logo pieces; nothing in one depends on the other.
 
 | Theme | Look |
 |-------|------|
-| `acronix64` | **Nintendo 64 / Smash 64 style** (current work) |
+| `acronixcosmos` | **Cosmic pixel art** (current work, see below) |
+| `acronix64` | Nintendo 64 / Smash 64 style |
 | `acronix`   | First version: modern, dark, soft glow (kept as it was) |
+
+### acronixcosmos: cosmic pixel art
+
+Original pixel art inspired by the atmosphere of 16-bit/GBA-era space backdrops (starfield, violet nebulae, a crescent moon, a layered pink/cyan/purple cloud horizon). No third-party art is used.
+
+Storyboard (seconds after the splash appears):
+
+1. **0.0** Dark sky, stars and nebulae fade in; the clouds start drifting.
+2. **1.4** The crescent moon (the recurring AcronixOS symbol) fades in and flickers softly.
+3. **1.8-3.6** The three UNI logo pieces (redrawn as pixel art from the original logo shape) enter from different sides and assemble, then a dithered glow pulse.
+4. **3.9-5.0** `UNIVERSIDAD NACIONAL DE INGENIERÍA`, then `4T4-COM-S`.
+5. **5.0** The progress path appears: 16 five-point stars that light up as boot advances, a travelling bright star, `LOADING ACRONIXOS...`. More twinkling stars appear and the moon brightens with progress.
+
+Throughout: big five-point stars twinkle, three small spiral galaxies turn slowly, and two shooting stars with fading trails cross the sky every few seconds.
+6. **6.3-9** The UNI group fades out, a luminous star rises, `AcronixOS` drops in letter by letter, tagline appears, small stars sparkle around the title.
+7. **Boot finished** The path is left full and Plymouth hands over to the login screen.
+
+How the art stays crisp: everything is drawn on a 320x180 grid and enlarged by a **whole number** (nearest neighbour) at build time into `s3_`, `s4_`, `s5_`, `s6_`, `s8_` image sets. The script picks the smallest scale that covers the screen (1080p uses x6, 720p x4); screens that are not 16:9 are centred and cropped at the edges. Nothing is resized at boot.
+
+| Path | What it is |
+|------|------------|
+| `scripts/make_assets_cosmos.py` | Draws all images (Python + Pillow, no other tools). `SCRIPT_ONLY=1` rebuilds only the script |
+| `theme/acronixcosmos.script.in` | The animation. **Edit this one**, not the generated script |
+| `theme/acronixcosmos.layout` | Generated constants |
+| `theme/acronixcosmos/` | The installable theme (generated, about 1.4 MB) |
+
+```bash
+THEME=acronixcosmos scripts/preview_plymouth.sh 14            # preview, installs nothing
+python3 scripts/make_assets_cosmos.py                         # after changing the art
+sudo scripts/install_plymouth.sh acronixcosmos                # install + select + rebuild initramfs
+sudo plymouth-set-default-theme -R manjaro                    # go back
+```
+
+Plymouth script gotchas found while building it (worth knowing before editing): arrays first written inside a function become private to it, so declare them at top level first; a helper taking a start time as its first argument returned wrong values, so the time windows are written inline; global constants must be defined before the function that uses them.
+
+Tested: loads in a real `plymouthd` (X11 preview) at 1920x1080 and 1366x768, full timeline, password prompt; CPU about 20-30% of one core while animating. Not tested: a real DRM boot, 4:3 screens, 4K.
+
+### Testing in an Arch Linux VM
+
+Packages in the VM: `plymouth` (always). For a quick preview you also need an X11 session (`xorg-server` plus any desktop or window manager); `unshare` comes with `util-linux`. For a real boot test you need `mkinitcpio` (default on Arch) and your bootloader (`grub`, for example). Only if you regenerate the art inside the VM: `python` and `python-pillow`. Optional: `openssh` to copy files with `scp`/`rsync`.
+
+Copy the files (the generated theme folder is enough for a real boot; add `scripts/` for the preview):
+
+```bash
+rsync -a theme/acronixcosmos user@vm-ip:~/            # from the host
+rsync -a scripts user@vm-ip:~/                        # only for the preview
+```
+
+**A. Preview inside the VM, nothing installed** (X11 session, repo layout `theme/` + `scripts/` needed):
+
+```bash
+THEME=acronixcosmos scripts/preview_plymouth.sh 14
+```
+
+**B. Real boot test** (take a VM snapshot first):
+
+```bash
+sudo cp -r ~/acronixcosmos /usr/share/plymouth/themes/
+# /etc/mkinitcpio.conf: put `plymouth` in HOOKS after `udev` and before `encrypt`/`filesystems`, e.g.
+#   HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block plymouth filesystems fsck)
+sudo plymouth-set-default-theme -R acronixcosmos      # runs mkinitcpio -P
+# kernel command line needs `quiet splash` (GRUB):
+#   edit GRUB_CMDLINE_LINUX_DEFAULT in /etc/default/grub, then
+sudo grub-mkconfig -o /boot/grub/grub.cfg
+sudo reboot
+```
+
+Go back with `plymouth-set-default-theme --list` to see what is installed, then `sudo plymouth-set-default-theme -R <previous-theme>`.
+
+VM tips: use a virtual GPU with KMS (virt-manager/QEMU: virtio or QXL; VirtualBox: VMSVGA; VMware: vmwgfx). A 16:9 resolution (1920x1080, 1280x720) shows the art exactly. If the splash does not appear: check that `plymouth` is in HOOKS before `filesystems`, that `splash` is on the command line, and run `sudo plymouthd --debug --debug-file=/tmp/ply.log` to look for script errors. These Arch steps were written from the host's Arch-family setup and have not been run on a real Arch VM.
 
 ### acronix64: storyboard
 
@@ -44,7 +115,6 @@ Fonts: the images are pre-rendered with Noto Sans Black / Black Italic, so the b
 
 ```bash
 THEME=acronix64 scripts/preview_plymouth.sh 14        # 14 seconds in a window
-PREVIEW_PROMPT=1 THEME=acronix64 scripts/preview_plymouth.sh 8   # also shows a message and a password prompt
 DEBUG_LOG=/tmp/ply.log THEME=acronix64 scripts/preview_plymouth.sh   # keep plymouthd's log
 ```
 
@@ -78,4 +148,4 @@ Plymouth composites in software, and in the X11 preview it costs roughly **20 ns
 
 ## GRUB
 
-Planned: N64 Smash-style theme.
+Planned (style to be confirmed: the Plymouth direction moved from N64/Smash to cosmic pixel art).
