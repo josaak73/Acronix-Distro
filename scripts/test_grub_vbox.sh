@@ -36,13 +36,17 @@ insmod png
 set gfxmode=${RES}x32
 set gfxpayload=keep
 terminal_output gfxterm
+# what /etc/grub.d/08_acronixos_handoff emits (after 00_header, so after terminal_output)
+insmod gfxterm_background
+background_image -m stretch (memdisk)/themes/acronixos-cosmic/handoff.png
 EOF
 for f in "$WORK"/mem/themes/acronixos-cosmic/*.pf2; do echo "loadfont (memdisk)/themes/acronixos-cosmic/$(basename "$f")"; done
-cat <<'EOF'
+cat <<EOF
 set theme=(memdisk)/themes/acronixos-cosmic/theme.txt
 export theme
-set timeout=30
-set default=1
+set timeout=${TEST_TIMEOUT:-30}
+set default=${TEST_DEFAULT:-1}
+${TEST_PRE:-}
 menuentry 'Arch Linux' --class arch --class gnu-linux --class gnu --class os { true }
 menuentry 'Manjaro Linux' --class manjaro --class gnu-linux --class gnu --class os { true }
 submenu 'Advanced options for Arch Linux' --class arch --class gnu-linux --class gnu --class os {
@@ -56,12 +60,13 @@ menuentry 'Linux Mint (on /dev/sda5)' --class linuxmint --class gnu-linux --clas
 menuentry 'Windows 11 (on /dev/nvme0n1p1)' --class windows --class os { true }
 menuentry 'SomeUnknownDistro' --class somedistro --class gnu-linux --class gnu --class os { true }
 menuentry 'UEFI Firmware Settings' --class efi { true }
+menuentry 'Slow boot test (sleeps 30 s)' --class arch --class os { sleep 30 }
 EOF
 } > "$WORK/mem/boot/grub/grub.cfg"
 
 tar -C "$WORK/mem" -cf "$WORK/memdisk.tar" boot themes
 grub-mkimage -O i386-pc -d $GRUBDIR -o "$WORK/gd/core.img" -p '(memdisk)/boot/grub' \
-  -m "$WORK/memdisk.tar" biosdisk memdisk tar normal gfxterm gfxmenu png all_video vbe \
+  -m "$WORK/memdisk.tar" biosdisk memdisk tar normal gfxterm gfxmenu gfxterm_background sleep png all_video vbe \
   video_bochs video_cirrus configfile echo true part_msdos >/dev/null
 cp $GRUBDIR/boot.img "$WORK/gd/"
 

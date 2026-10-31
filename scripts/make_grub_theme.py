@@ -44,6 +44,7 @@ PANEL = (30, 44, 160, 90)          # menu panel x, y, w, h
 FOOT = (30, 150, 260, 14)          # footer panel
 RING_C = (250, 72)                 # countdown ring / moon centre
 RING_SIZE = 78
+HANDOFF_DIM = 50                   # % brightness of handoff.png
 TICKS = 16
 
 # ---- OS icons ---------------------------------------------------------------
@@ -218,7 +219,7 @@ ALIASES = {
 
 
 # ---- background -------------------------------------------------------------
-def make_art_bg():
+def make_art_bg(panels=True):
     img = mac.make_bg().convert("RGBA")
     cx, cy = RING_C
     moon = mac.make_moon(1, 0)
@@ -240,8 +241,9 @@ def make_art_bg():
     img.alpha_composite(title, (50, 15))
     sub = mac.small_text("COSMIC BOOT MENU  V" + VERSION, rgb("#A8FFF4"), rgb("#1B0B52"))
     img.alpha_composite(sub, (52, 33))
-    for (x, y, w_, h_) in (PANEL, FOOT):
-        img.alpha_composite(mac.make_plate(w_, h_), (x, y))
+    if panels:
+        for (x, y, w_, h_) in (PANEL, FOOT):
+            img.alpha_composite(mac.make_plate(w_, h_), (x, y))
     return img
 
 
@@ -300,7 +302,7 @@ def font_name(pf2):
 
 
 # ---- one resolution ---------------------------------------------------------
-def build(res, cfg, art):
+def build(res, cfg, art, handoff):
     S, U = cfg["S"], cfg["U"]
     cx0, cy0 = cfg["crop"]
     w, h = map(int, res.split("x"))
@@ -311,6 +313,11 @@ def build(res, cfg, art):
 
     big = scale(art, S).convert("RGB")
     big.crop((cx0, cy0, cx0 + w, cy0 + h)).save(d / "background.png", optimize=True)
+    # shown by GRUB's text terminal after the menu closes (console, editor, boot): same scene without
+    # the empty panels, dimmed so GRUB text stays readable
+    hb = scale(handoff, S).convert("RGB").crop((cx0, cy0, cx0 + w, cy0 + h))
+    hb = Image.eval(hb, lambda v: v * HANDOFF_DIM // 100)
+    hb.save(d / "handoff.png", optimize=True)
 
     for name, fn in ICONS.items():
         img = scale(fn(), U)
@@ -350,6 +357,11 @@ message-font: "{n_small}"
 message-color: "#FFFFFF"
 message-bg-color: "#0A0528"
 terminal-font: "{n_small}"
+terminal-left: "0"
+terminal-top: "0"
+terminal-width: "100%"
+terminal-height: "100%"
+terminal-border: "0"
 
 + boot_menu {{
   left = {mx}
@@ -417,9 +429,10 @@ terminal-font: "{n_small}"
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     art = make_art_bg()
+    handoff = make_art_bg(panels=False)
     info = {}
     for res, cfg in RES.items():
-        info[res] = build(res, cfg, art)
+        info[res] = build(res, cfg, art, handoff)
         print(res, "ok")
     art.save(OUT / "_art_320x180.png")        # source canvas, handy for previews
     (OUT / "_art_320x180.png").unlink()

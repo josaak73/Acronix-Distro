@@ -1,0 +1,31 @@
+#!/bin/sh
+# AcronixOS Cosmic: keep the cosmic scene behind GRUB's text terminal (console, editor, errors)
+# once the themed menu has been left. Installed as /etc/grub.d/08_acronixos_handoff by
+# scripts/install_grub_theme.sh. It prints nothing (and never fails) unless the AcronixOS theme
+# is the active GRUB_THEME and its handoff.png is readable by GRUB, so it is harmless otherwise.
+prefix="/usr"
+exec_prefix="/usr"
+datarootdir="/usr/share"
+
+[ -r "$pkgdatadir/grub-mkconfig_lib" ] || exit 0
+. "$pkgdatadir/grub-mkconfig_lib"
+
+emit() {
+  case "$GRUB_THEME" in */acronixos-cosmic/theme.txt) ;; *) return 0 ;; esac
+  img="$(dirname "$GRUB_THEME")/handoff.png"
+  [ -f "$img" ] || return 0
+  is_path_readable_by_grub "$img" || return 0
+  dev=$(${grub_probe} --target=device "$img") || return 0
+  access=$(prepare_grub_to_access_device "$dev") || return 0
+  rel=$(make_system_path_relative_to_its_root "$img") || return 0
+  printf '%s\n' "$access"
+  cat <<EOT
+insmod png
+insmod gfxterm_background
+background_image -m stretch (\$root)$rel
+EOT
+}
+
+out=$(emit 2>/dev/null) || out=
+[ -n "$out" ] && printf '%s\n' "$out"
+exit 0

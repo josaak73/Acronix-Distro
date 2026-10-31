@@ -6,6 +6,11 @@ message-font: "Terminus Bold 16"
 message-color: "#FFFFFF"
 message-bg-color: "#0A0528"
 terminal-font: "Terminus Bold 16"
+terminal-left: "0"
+terminal-top: "0"
+terminal-width: "100%"
+terminal-height: "100%"
+terminal-border: "0"
 
 + boot_menu {
   left = 55
