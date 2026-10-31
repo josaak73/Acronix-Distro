@@ -2,6 +2,16 @@
 
 Customizations for the Acronix Linux distro (UNI).
 
+## GRUB theme
+
+`grub/acronixos-cosmic/` is a cosmic pixel-art GRUB theme that matches the Plymouth `acronixcosmos` boot animation (star-ring countdown around the moon, glowing star selector, OS icons chosen from the entries' `--class`). Install, rollback, icon mapping and troubleshooting are in [`grub/README.md`](grub/README.md).
+
+```bash
+sudo scripts/install_grub_theme.sh --dry-run     # see what it would change
+sudo scripts/install_grub_theme.sh               # install (backs up /etc/default/grub and grub.cfg first)
+sudo scripts/uninstall_grub_theme.sh             # rollback
+```
+
 ## Plymouth boot animation
 
 There are three themes. They share the logo pieces; nothing in one depends on the other.
