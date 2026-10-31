@@ -8,9 +8,31 @@ Customizations for the Acronix Linux distro (UNI).
 
 ```bash
 sudo scripts/install_grub_theme.sh --dry-run     # see what it would change
-sudo scripts/install_grub_theme.sh               # install (backs up /etc/default/grub and grub.cfg first)
+sudo scripts/install_grub_theme.sh               # install (settings drop-in + backup of grub.cfg first)
 sudo scripts/uninstall_grub_theme.sh             # rollback
 ```
+
+### How GRUB works (and where the theme fits)
+
+GRUB is the first program that runs after the firmware (BIOS/UEFI). It is not Linux: it has its own tiny drivers, so everything below happens **before the kernel exists**, which is why a theme can only use images, fonts and text that GRUB itself understands.
+
+1. **Firmware starts GRUB.** `grub-install` put it on the disk (BIOS boot sector, or `grubx64.efi` on the EFI partition). That is a one-time step and the theme never touches it.
+2. **GRUB reads `/boot/grub/grub.cfg`.** It is a script in GRUB's own shell language. You do not edit it: `grub-mkconfig` **generates** it by running `/etc/default/grub` (your settings) and every executable in `/etc/grub.d/` in order: `00_header` (video, fonts, theme), `10_linux` (one entry per installed kernel), `30_os-prober` (other systems found on the disks), `40_custom` (your own entries). Each entry carries `--class` words such as `arch`, `gnu-linux`, `windows`.
+3. **GRUB draws the menu.** If `GRUB_THEME` is set, the `gfxmenu` module reads `theme.txt` (positions, fonts, colours), the background PNG, and for each entry the first `icons/<class>.png` that exists. It counts down `GRUB_TIMEOUT` and shows the countdown ring. Keys: Up/Down, Enter, `e` edit, `c` console. There is no mouse in GRUB 2.16's graphical menu.
+4. **You pick an entry** (or the timer picks the default). GRUB runs that entry's commands: `linux /vmlinuz-... root=... quiet splash`, `initrd /initramfs-....img`, `boot`. This loads the kernel and initramfs into memory and jumps to the kernel. Windows entries use `chainloader` instead, which hands control to the Windows boot manager.
+5. **The kernel takes over** and the Plymouth `acronixcosmos` splash starts. From here GRUB is gone.
+
+What this repository changes, and what it does not:
+
+| Part | Role | Touched by the installer |
+|---|---|---|
+| `grub/acronixos-cosmic/<res>/` | the theme (background, icons, fonts, selector), copied to `/boot/grub/themes/acronixos-cosmic/` | added |
+| `/etc/default/grub.d/99-acronixos-cosmic.cfg` | tells `grub-mkconfig` to use the theme, the resolution and the countdown | added (your `/etc/default/grub` is not edited) |
+| `/etc/grub.d/08_acronixos_handoff` | keeps the cosmic background behind GRUB's text screens | added |
+| `/boot/grub/grub.cfg` | regenerated through `grub-mkconfig`, checked with `grub-script-check`, old one backed up | replaced safely |
+| kernels, initramfs, `grub-install`, EFI boot entry, your menu entries | the actual boot chain | **never touched** |
+
+Why the icons need no detection: GRUB cannot recognise an operating system, but `grub-mkconfig` already tags every entry with classes (the first word of the distro name, `windows`, ...). The theme just ships `icons/<class>.png` files and GRUB uses the first one that matches. Why the screen stays themed after you pick an entry: GRUB only leaves the graphical menu when something prints text, and the installer removes the `Loading Linux ...` lines that some distros add, so the menu stays up until the kernel starts.
 
 ## Plymouth boot animation
 
